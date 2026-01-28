@@ -10,9 +10,6 @@ from .webhooks import (
     WooCommerceWebhookView, EtsyWebhookView
 )
 
-# Create router for viewsets if needed
-router = DefaultRouter()
-
 urlpatterns = [
     # Channel Management
     path('channels/', enhanced_views.ChannelListCreateView.as_view(), name='channel-list-create'),
@@ -50,7 +47,4 @@ urlpatterns = [
     path('webhooks/ebay/', EbayWebhookView.as_view(), name='ebay-webhook'),
     path('webhooks/woocommerce/', WooCommerceWebhookView.as_view(), name='woocommerce-webhook'),
     path('webhooks/etsy/', EtsyWebhookView.as_view(), name='etsy-webhook'),
-    
-    # Include router URLs
-    path('', include(router.urls)),
 ]

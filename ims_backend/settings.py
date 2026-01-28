@@ -4,6 +4,7 @@ Django settings for ims_backend project.
 
 from pathlib import Path
 import os
+import dj_database_url
 from decouple import config
 from datetime import timedelta
 
@@ -85,10 +86,11 @@ WSGI_APPLICATION = 'ims_backend.wsgi.application'
 
 # Database
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL', default='sqlite:///db.sqlite3'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 }
 
 # Password validation
@@ -177,15 +179,7 @@ SIMPLE_JWT = {
 # CORS settings - Allow all origins during development
 CORS_ALLOW_ALL_ORIGINS = True  # ⚠️ Only for development!
 
-# For production, use specific origins:
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",
-#     "http://127.0.0.1:3000",
-#     "http://localhost:5173",
-#     "http://127.0.0.1:5173",
-#     "http://localhost:5180",
-#     "http://127.0.0.1:5180",
-# ]
+
 
 CORS_ALLOW_CREDENTIALS = True
 
