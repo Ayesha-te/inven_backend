@@ -1,7 +1,7 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from accounts.permissions import PlanPermission
 from django.db.models import Min
 from django.db import DatabaseError, IntegrityError
 from django.http import HttpResponse
@@ -12,7 +12,8 @@ from .serializers import SupplierProductSerializer, PurchaseOrderSerializer
 class SupplierProductViewSet(viewsets.ModelViewSet):
     queryset = SupplierProduct.objects.select_related('supplier', 'product').all()
     serializer_class = SupplierProductSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [permissions.IsAuthenticated, PlanPermission]
+    required_plan = 'STANDARD'
     filterset_fields = ['supplier', 'product', 'is_active']
     search_fields = ['supplier__name', 'product__name']
     ordering_fields = ['supplier_price', 'available_quantity']
@@ -21,7 +22,8 @@ class SupplierProductViewSet(viewsets.ModelViewSet):
 class PurchaseOrderViewSet(viewsets.ModelViewSet):
     queryset = PurchaseOrder.objects.select_related('supplier', 'supermarket', 'created_by').prefetch_related('items').all()
     serializer_class = PurchaseOrderSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [permissions.IsAuthenticated, PlanPermission]
+    required_plan = 'STANDARD'
     filterset_fields = ['supplier', 'supermarket', 'status']
     search_fields = ['supplier__name', 'notes', 'po_number']
     ordering_fields = ['created_at', 'updated_at', 'expected_delivery_date']
@@ -130,7 +132,8 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
 from rest_framework.views import APIView
 class BestSupplierView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [permissions.IsAuthenticated, PlanPermission]
+    required_plan = 'STANDARD'
 
     def get(self, request):
         product_id = request.query_params.get('product')

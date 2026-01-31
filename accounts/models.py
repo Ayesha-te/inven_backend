@@ -36,9 +36,9 @@ class User(AbstractUser):
     """Custom User model with additional fields for IMS"""
     
     SUBSCRIPTION_CHOICES = [
-        ('FREE', 'Free'),
         ('BASIC', 'Basic'),
-        ('PREMIUM', 'Premium'),
+        ('STANDARD', 'Standard'),
+        ('OTHER', 'Other'),
     ]
     
     # Override username to make it optional and non-unique
@@ -53,7 +53,7 @@ class User(AbstractUser):
     subscription_plan = models.CharField(
         max_length=10, 
         choices=SUBSCRIPTION_CHOICES, 
-        default='FREE'
+        default='BASIC'
     )
     subscription_start_date = models.DateTimeField(blank=True, null=True)
     subscription_end_date = models.DateTimeField(blank=True, null=True)
