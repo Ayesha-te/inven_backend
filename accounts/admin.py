@@ -5,7 +5,7 @@ from .models import User, UserProfile, UserSession, EmailVerification, PasswordR
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = [
+    list_display =  [
         'email', 'username', 'first_name', 'last_name', 
         'subscription_plan', 'is_verified', 'is_active', 'date_joined'
     ]
