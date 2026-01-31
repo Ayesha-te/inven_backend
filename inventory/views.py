@@ -116,6 +116,23 @@ class ProductListCreateView(generics.ListCreateAPIView):
             return ProductCreateUpdateSerializer
         return ProductListSerializer
 
+    def perform_create(self, serializer):
+        from django.conf import settings
+        user = self.request.user
+        plan = user.subscription_plan
+        plan_config = settings.SUBSCRIPTION_PLANS.get(plan, settings.SUBSCRIPTION_PLANS['BASIC'])
+        
+        max_products = plan_config.get('max_products', 100)
+        
+        if max_products != -1:
+            # Count products owned by the user across all their supermarkets
+            current_products = Product.objects.filter(supermarket__owner=user).count()
+            if current_products >= max_products:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError(f"Your {plan} plan only allows up to {max_products} products. Please upgrade your plan.")
+        
+        serializer.save(created_by=user)
+
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update, and delete products"""

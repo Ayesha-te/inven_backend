@@ -37,8 +37,8 @@ class User(AbstractUser):
     
     SUBSCRIPTION_CHOICES = [
         ('BASIC', 'Basic'),
-        ('STANDARD', 'Standard'),
-        ('OTHER', 'Other'),
+        ('STARTER', 'Starter'),
+        ('PRO', 'Pro'),
     ]
     
     # Override username to make it optional and non-unique

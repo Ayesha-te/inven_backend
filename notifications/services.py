@@ -15,8 +15,171 @@ from django_q.models import Schedule
 
 from .models import Reminder, ReminderLog, Notification
 
+from django.db.models import F
+from inventory.models import Product
+from purchasing.models import PurchaseOrder
+
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+
+class NotificationService:
+    """Service for managing notifications"""
+
+    @staticmethod
+    def create_notification(
+        user: User,
+        notification_type: str,
+        title: str,
+        message: str,
+        priority: str = 'MEDIUM',
+        related_object_type: str = None,
+        related_object_id: str = None,
+        supermarket=None,
+        action_data: Dict[str, Any] = None,
+        action_url: str = None
+    ) -> Notification:
+        """Create a new in-app notification"""
+        try:
+            notification = Notification.objects.create(
+                user=user,
+                notification_type=notification_type,
+                title=title,
+                message=message,
+                priority=priority,
+                related_object_type=related_object_type,
+                related_object_id=related_object_id,
+                supermarket=supermarket,
+                action_data=action_data or {},
+                action_url=action_url
+            )
+            logger.info(f"Created {notification_type} notification for user {user.id}")
+            return notification
+        except Exception as e:
+            logger.error(f"Error creating notification: {str(e)}")
+            return None
+
+    @staticmethod
+    def check_and_generate_alerts(user=None, supermarket=None):
+        """Check inventory and orders to generate automatic alerts"""
+        today = timezone.now().date()
+        
+        # 1. Low Stock Alerts
+        products_qs = Product.objects.filter(is_active=True)
+        if user:
+            products_qs = products_qs.filter(created_by=user)
+        if supermarket:
+            products_qs = products_qs.filter(supermarket=supermarket)
+
+        low_stock_products = products_qs.filter(
+            quantity__lte=F('min_stock_level')
+        ).select_related('supermarket', 'created_by')
+
+        for product in low_stock_products:
+            # Avoid duplicate notifications for the same product in a short period (e.g., 24h)
+            last_notif = Notification.objects.filter(
+                user=product.created_by,
+                notification_type='LOW_STOCK',
+                related_object_id=str(product.id),
+                created_at__gte=timezone.now() - timedelta(days=1)
+            ).exists()
+
+            if not last_notif and product.created_by:
+                NotificationService.create_notification(
+                    user=product.created_by,
+                    notification_type='LOW_STOCK',
+                    title=f"Low Stock Alert: {product.name}",
+                    message=f"Product '{product.name}' is low on stock ({product.quantity} remaining).",
+                    priority='HIGH',
+                    related_object_type='product',
+                    related_object_id=str(product.id),
+                    supermarket=product.supermarket
+                )
+
+        # 2. Expiry Alerts (Expiring in 4 days)
+        expiring_soon = products_qs.filter(
+            expiry_date__lte=today + timedelta(days=4),
+            expiry_date__gt=today
+        ).select_related('supermarket', 'created_by')
+
+        for product in expiring_soon:
+            days = (product.expiry_date - today).days
+            last_notif = Notification.objects.filter(
+                user=product.created_by,
+                notification_type='EXPIRY',
+                related_object_id=str(product.id),
+                created_at__gte=timezone.now() - timedelta(days=1)
+            ).exists()
+
+            if not last_notif and product.created_by:
+                NotificationService.create_notification(
+                    user=product.created_by,
+                    notification_type='EXPIRY',
+                    title=f"Expiry Alert: {product.name}",
+                    message=f"Product '{product.name}' will expire in {days} days on {product.expiry_date}.",
+                    priority='CRITICAL',
+                    related_object_type='product',
+                    related_object_id=str(product.id),
+                    supermarket=product.supermarket
+                )
+
+        # 3. Expired Alerts
+        expired_products = products_qs.filter(
+            expiry_date__lte=today
+        ).select_related('supermarket', 'created_by')
+
+        for product in expired_products:
+            last_notif = Notification.objects.filter(
+                user=product.created_by,
+                notification_type='EXPIRY',
+                related_object_id=str(product.id),
+                message__icontains='expired',
+                created_at__gte=timezone.now() - timedelta(days=1)
+            ).exists()
+
+            if not last_notif and product.created_by:
+                NotificationService.create_notification(
+                    user=product.created_by,
+                    notification_type='EXPIRY',
+                    title=f"Expired Product: {product.name}",
+                    message=f"Product '{product.name}' has expired on {product.expiry_date}.",
+                    priority='CRITICAL',
+                    related_object_type='product',
+                    related_object_id=str(product.id),
+                    supermarket=product.supermarket
+                )
+
+        # 4. Late Order Alerts
+        po_qs = PurchaseOrder.objects.all()
+        if user:
+            po_qs = po_qs.filter(created_by=user)
+        if supermarket:
+            po_qs = po_qs.filter(supermarket=supermarket)
+
+        late_orders = po_qs.filter(
+            status='SENT',
+            expected_delivery_date__lt=today
+        ).select_related('supermarket', 'created_by', 'supplier')
+
+        for po in late_orders:
+            last_notif = Notification.objects.filter(
+                user=po.created_by,
+                notification_type='ORDER_LATE',
+                related_object_id=str(po.id),
+                created_at__gte=timezone.now() - timedelta(days=1)
+            ).exists()
+
+            if not last_notif and po.created_by:
+                NotificationService.create_notification(
+                    user=po.created_by,
+                    notification_type='ORDER_LATE',
+                    title=f"Late Order: PO#{po.po_number or po.id}",
+                    message=f"Order from '{po.supplier.name}' was expected on {po.expected_delivery_date} but has not been received.",
+                    priority='HIGH',
+                    related_object_type='purchase_order',
+                    related_object_id=str(po.id),
+                    supermarket=po.supermarket
+                )
 
 
 class ReminderService:

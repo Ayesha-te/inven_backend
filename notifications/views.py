@@ -44,6 +44,13 @@ class NotificationListView(generics.ListAPIView):
     pagination_class = StandardResultsSetPagination
     
     def get_queryset(self):
+        # Trigger automatic alerts check for this user before returning the list
+        try:
+            from .services import NotificationService
+            NotificationService.check_and_generate_alerts(user=self.request.user)
+        except Exception as e:
+            logger.error(f"Error triggering alerts in view: {str(e)}")
+            
         queryset = Notification.objects.filter(user=self.request.user)
         
         # Filter by read status

@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ('is_verified', models.BooleanField(default=False)),
                 ('registration_date', models.DateTimeField(auto_now_add=True)),
                 ('last_login_ip', models.GenericIPAddressField(blank=True, null=True)),
-                ('subscription_plan', models.CharField(choices=[('FREE', 'Free'), ('BASIC', 'Basic'), ('PREMIUM', 'Premium')], default='FREE', max_length=10)),
+                ('subscription_plan', models.CharField(choices=[('BASIC', 'Basic'), ('STANDARD', 'Standard'), ('PRO', 'Pro')], default='BASIC', max_length=10)),
                 ('subscription_start_date', models.DateTimeField(blank=True, null=True)),
                 ('subscription_end_date', models.DateTimeField(blank=True, null=True)),
                 ('is_subscription_active', models.BooleanField(default=True)),

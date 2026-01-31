@@ -33,6 +33,21 @@ class SupermarketListCreateView(generics.ListCreateAPIView):
             return SupermarketCreateUpdateSerializer
         return SupermarketListSerializer
 
+    def perform_create(self, serializer):
+        from django.conf import settings
+        user = self.request.user
+        plan = user.subscription_plan
+        plan_config = settings.SUBSCRIPTION_PLANS.get(plan, settings.SUBSCRIPTION_PLANS['BASIC'])
+        
+        max_stores = plan_config.get('max_supermarkets', 1)
+        current_stores = Supermarket.objects.filter(owner=user).count()
+        
+        if max_stores != -1 and current_stores >= max_stores:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError(f"Your {plan} plan only allows up to {max_stores} stores. Please upgrade your plan.")
+            
+        serializer.save(owner=user)
+
 
 class SupermarketDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update, and delete supermarkets"""

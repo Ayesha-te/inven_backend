@@ -16,11 +16,11 @@ class PlanPermission(permissions.BasePermission):
         required_plan = getattr(view, 'required_plan', 'BASIC')
         user_plan = request.user.subscription_plan
         
-        # Plan hierarchy: BASIC < STANDARD < OTHER
+        # Plan hierarchy: BASIC < STARTER < PRO
         plan_levels = {
             'BASIC': 0,
-            'STANDARD': 1,
-            'OTHER': 2
+            'STARTER': 1,
+            'PRO': 2
         }
         
         user_level = plan_levels.get(user_plan, 0)

@@ -13,7 +13,7 @@ class SupplierProductViewSet(viewsets.ModelViewSet):
     queryset = SupplierProduct.objects.select_related('supplier', 'product').all()
     serializer_class = SupplierProductSerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'STANDARD'
+    required_plan = 'STARTER'
     filterset_fields = ['supplier', 'product', 'is_active']
     search_fields = ['supplier__name', 'product__name']
     ordering_fields = ['supplier_price', 'available_quantity']
@@ -23,7 +23,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
     queryset = PurchaseOrder.objects.select_related('supplier', 'supermarket', 'created_by').prefetch_related('items').all()
     serializer_class = PurchaseOrderSerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'STANDARD'
+    required_plan = 'STARTER'
     filterset_fields = ['supplier', 'supermarket', 'status']
     search_fields = ['supplier__name', 'notes', 'po_number']
     ordering_fields = ['created_at', 'updated_at', 'expected_delivery_date']
@@ -48,6 +48,24 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Already received'}, status=status.HTTP_400_BAD_REQUEST)
         po.status = 'RECEIVED'
         po.save(update_fields=['status'])
+
+        # Create notification for the user who created the PO
+        try:
+            from notifications.services import NotificationService
+            NotificationService.create_notification(
+                user=po.created_by,
+                notification_type='ORDER_DELIVERED',
+                title=f"Order Received: PO#{po.po_number or po.id}",
+                message=f"Order from '{po.supplier.name}' has been marked as received.",
+                priority='MEDIUM',
+                related_object_type='purchase_order',
+                related_object_id=str(po.id),
+                supermarket=po.supermarket
+            )
+        except Exception as e:
+            # Don't fail the receipt process if notification fails
+            print(f"Failed to create notification: {str(e)}")
+
         return Response({'detail': 'Marked as received'})
 
     @action(detail=True, methods=['post'])
@@ -133,7 +151,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 from rest_framework.views import APIView
 class BestSupplierView(APIView):
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'STANDARD'
+    required_plan = 'STARTER'
 
     def get(self, request):
         product_id = request.query_params.get('product')
