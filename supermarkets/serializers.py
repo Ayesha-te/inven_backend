@@ -86,6 +86,24 @@ class SupermarketCreateUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You can only set your own supermarkets as parent.")
         return value
 
+    def validate(self, data):
+        """
+        Validate against subscription plan features.
+        """
+        from django.conf import settings
+        user = self.context['request'].user
+        plan = user.subscription_plan
+
+        # Check for POS integration feature
+        if data.get('pos_system_enabled'):
+            plan_config = settings.SUBSCRIPTION_PLANS.get(plan, settings.SUBSCRIPTION_PLANS['BASIC'])
+            if 'pos_integration' not in plan_config.get('features', []):
+                raise serializers.ValidationError({
+                    'pos_system_enabled': f"Your {plan} plan does not include POS integration. Please upgrade to the PRO plan."
+                })
+        
+        return data
+
 
 class SupermarketStaffSerializer(serializers.ModelSerializer):
     """Serializer for supermarket staff"""
