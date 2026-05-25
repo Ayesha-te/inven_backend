@@ -13,11 +13,7 @@ from .enhanced_models import (
 )
 from .models import Order, OrderItem, Warehouse
 from supermarkets.models import Supermarket
-<<<<<<< HEAD
 from inventory.models import Product, StockMovement
-=======
-from inventory.models import Product
->>>>>>> 16f04424af1ec2b2c5908d5c7885fc3fe43a5082
 
 User = get_user_model()
 
