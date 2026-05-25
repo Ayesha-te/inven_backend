@@ -10,14 +10,15 @@ from django.conf import settings
 from django.utils.crypto import get_random_string
 from datetime import timedelta
 import uuid
+from django.db.models import Prefetch
 
 from .models import User, UserProfile, UserSession, EmailVerification, PasswordReset
 from .serializers import (
     UserRegistrationSerializer, UserLoginSerializer, UserProfileSerializer,
     UserProfileDetailSerializer, ChangePasswordSerializer, UserSessionSerializer,
-    PasswordResetRequestSerializer, PasswordResetConfirmSerializer
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer, AdminManagedUserSerializer
 )
-from supermarkets.models import Supermarket
+from supermarkets.models import Supermarket, SupermarketStaff
 
 
 class UserRegistrationView(APIView):
@@ -51,16 +52,9 @@ class UserRegistrationView(APIView):
             except Exception as e:
                 print(f"Failed to send verification email: {e}")
             
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
-            
             return Response({
-                'message': 'User registered successfully. Please check your email for verification.',
+                'message': 'Registration submitted successfully. Your request is pending admin approval.',
                 'user': UserProfileSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }
             }, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -129,6 +123,80 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     
     def get_object(self):
         return self.request.user
+
+
+class AdminUserListView(generics.ListAPIView):
+    serializer_class = AdminManagedUserSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        return User.objects.filter(is_superuser=False).select_related('approved_by').prefetch_related(
+            Prefetch(
+                'owned_supermarkets',
+                queryset=Supermarket.objects.filter(is_active=True).prefetch_related(
+                    'sub_stores',
+                    Prefetch('staff', queryset=SupermarketStaff.objects.select_related('user').filter(is_active=True))
+                )
+            )
+        ).order_by('-registration_date')
+
+
+class AdminUserApproveView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id, is_superuser=False)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        user.approval_status = 'APPROVED'
+        user.is_active = True
+        user.approved_at = timezone.now()
+        user.approved_by = request.user
+        user.save(update_fields=['approval_status', 'is_active', 'approved_at', 'approved_by'])
+
+        return Response({
+            'message': 'User approved successfully',
+            'user': AdminManagedUserSerializer(user).data,
+        }, status=status.HTTP_200_OK)
+
+
+class AdminUserRejectView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id, is_superuser=False)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        user.approval_status = 'REJECTED'
+        user.is_active = False
+        user.approved_at = None
+        user.approved_by = request.user
+        user.save(update_fields=['approval_status', 'is_active', 'approved_at', 'approved_by'])
+
+        return Response({
+            'message': 'User rejected successfully',
+            'user': AdminManagedUserSerializer(user).data,
+        }, status=status.HTTP_200_OK)
+
+
+class AdminUserDeleteView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def delete(self, request, user_id):
+        try:
+            user = User.objects.get(id=user_id, is_superuser=False)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        email = user.email
+        user.delete()
+        return Response({
+            'message': f'User {email} removed successfully'
+        }, status=status.HTTP_200_OK)
 
 
 class ChangePasswordView(APIView):

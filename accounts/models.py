@@ -23,6 +23,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault('approval_status', 'APPROVED')
         
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
@@ -34,10 +35,17 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     """Custom User model with additional fields for IMS"""
+
+    APPROVAL_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
     
     SUBSCRIPTION_CHOICES = [
-        ('FREE', 'Free'),
+        ('STARTER', 'Starter'),
         ('BASIC', 'Basic'),
+        ('STANDARD', 'Standard'),
         ('PREMIUM', 'Premium'),
     ]
     
@@ -48,12 +56,21 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
     registration_date = models.DateTimeField(auto_now_add=True)
     last_login_ip = models.GenericIPAddressField(blank=True, null=True)
+    approval_status = models.CharField(max_length=10, choices=APPROVAL_CHOICES, default='PENDING')
+    approved_at = models.DateTimeField(blank=True, null=True)
+    approved_by = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='approved_accounts'
+    )
     
     # Subscription details
     subscription_plan = models.CharField(
         max_length=10, 
         choices=SUBSCRIPTION_CHOICES, 
-        default='FREE'
+        default='STARTER'
     )
     subscription_start_date = models.DateTimeField(blank=True, null=True)
     subscription_end_date = models.DateTimeField(blank=True, null=True)
@@ -107,6 +124,10 @@ class User(AbstractUser):
             return None
         remaining = self.subscription_end_date - timezone.now()
         return max(0, remaining.days)
+
+    @property
+    def is_pending_approval(self):
+        return self.approval_status == 'PENDING'
 
 
 class UserProfile(models.Model):

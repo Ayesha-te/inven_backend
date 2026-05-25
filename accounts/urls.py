@@ -20,4 +20,10 @@ urlpatterns = [
     path('sessions/', views.UserSessionsView.as_view(), name='user_sessions'),
     path('logout-session/<int:session_id>/', views.logout_session, name='logout_session'),
     path('logout-all/', views.logout_all_sessions, name='logout_all_sessions'),
+
+    # Admin panel management
+    path('admin/users/', views.AdminUserListView.as_view(), name='admin_user_list'),
+    path('admin/users/<int:user_id>/approve/', views.AdminUserApproveView.as_view(), name='admin_user_approve'),
+    path('admin/users/<int:user_id>/reject/', views.AdminUserRejectView.as_view(), name='admin_user_reject'),
+    path('admin/users/<int:user_id>/', views.AdminUserDeleteView.as_view(), name='admin_user_delete'),
 ]

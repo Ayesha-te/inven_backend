@@ -1,6 +1,7 @@
 from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count, Sum
 from .models import (
@@ -14,6 +15,7 @@ from .serializers import (
     SupermarketAnalyticsSerializer, SupermarketStatsSerializer,
     InvitationResponseSerializer
 )
+from accounts.plan_limits import get_max_stores, normalize_subscription_plan
 
 
 class SupermarketListCreateView(generics.ListCreateAPIView):
@@ -32,6 +34,19 @@ class SupermarketListCreateView(generics.ListCreateAPIView):
         if self.request.method == 'POST':
             return SupermarketCreateUpdateSerializer
         return SupermarketListSerializer
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        normalized_plan = normalize_subscription_plan(getattr(user, 'subscription_plan', None))
+        max_stores = get_max_stores(normalized_plan)
+        current_stores = Supermarket.objects.filter(owner=user).count()
+
+        if max_stores is not None and current_stores >= max_stores:
+            raise ValidationError({
+                'detail': f"Your {normalized_plan.title()} plan allows up to {max_stores} store(s). Upgrade to add more."
+            })
+
+        serializer.save(owner=user)
 
 
 class SupermarketDetailView(generics.RetrieveUpdateDestroyAPIView):

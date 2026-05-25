@@ -287,21 +287,28 @@ POS_SYSTEMS = {
 
 # Subscription Plans
 SUBSCRIPTION_PLANS = {
-    'FREE': {
-        'max_products': 100,
+    'STARTER': {
+        'max_products': 50,
         'max_supermarkets': 1,
-        'features': ['basic_inventory', 'excel_import'],
+        'features': ['core_inventory'],
+        'price': 0.0,
     },
     'BASIC': {
-        'max_products': 1000,
-        'max_supermarkets': 3,
-        'features': ['basic_inventory', 'excel_import', 'image_import', 'pos_sync'],
-        'price': 29.99,
+        'max_products': 100,
+        'max_supermarkets': 1,
+        'features': ['core_inventory', 'expiry_alerts', 'mobile_app_access'],
+        'price': 9.0,
+    },
+    'STANDARD': {
+        'max_products': -1,  # Unlimited
+        'max_supermarkets': 5,
+        'features': ['barcode_scanner_support', 'orders_management', 'supplier_management', 'basic_analytics', 'standard_support'],
+        'price': 29.0,
     },
     'PREMIUM': {
         'max_products': -1,  # Unlimited
         'max_supermarkets': -1,  # Unlimited
-        'features': ['all_features'],
-        'price': 99.99,
+        'features': ['advanced_inventory', 'multi_channel_sync', 'pos_integration', 'advanced_analytics', 'api_access', 'priority_support'],
+        'price': 79.0,
     }
 }

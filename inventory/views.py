@@ -2,6 +2,7 @@ from rest_framework import generics, status, permissions, filters
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Sum, Avg, Count
 from django.utils import timezone
@@ -22,6 +23,7 @@ from .serializers import (
 )
 from .filters import ProductFilter
 from .services import BarcodeService, TicketService, ProductService
+from accounts.plan_limits import get_max_products, normalize_subscription_plan
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
@@ -115,6 +117,31 @@ class ProductListCreateView(generics.ListCreateAPIView):
         if self.request.method == 'POST':
             return ProductCreateUpdateSerializer
         return ProductListSerializer
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        supermarket = serializer.validated_data.get('supermarket')
+        if supermarket is None:
+            raise ValidationError({'supermarket': 'Supermarket is required.'})
+
+        is_owner = supermarket.owner_id == user.id
+        is_staff = supermarket.staff.filter(user=user, is_active=True).exists()
+        if not (is_owner or is_staff):
+            raise PermissionDenied('You do not have permission to add products to this store.')
+
+        plan = normalize_subscription_plan(getattr(supermarket.owner, 'subscription_plan', None))
+        max_products = get_max_products(plan)
+        if max_products is not None:
+            owner_products_count = Product.objects.filter(
+                supermarket__owner=supermarket.owner,
+                is_active=True
+            ).count()
+            if owner_products_count >= max_products:
+                raise ValidationError({
+                    'detail': f"Your {plan.title()} plan allows up to {max_products} products. Upgrade to add more."
+                })
+
+        serializer.save(created_by=user)
 
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
