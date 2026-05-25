@@ -290,25 +290,46 @@ SUBSCRIPTION_PLANS = {
     'STARTER': {
         'max_products': 50,
         'max_supermarkets': 1,
-        'features': ['core_inventory'],
-        'price': 0.0,
+        'features': ['single_store', 'core_inventory'],
+        'price': 0.00,
     },
     'BASIC': {
+        'inherits': 'STARTER',
         'max_products': 100,
         'max_supermarkets': 1,
-        'features': ['core_inventory', 'expiry_alerts', 'mobile_app_access'],
-        'price': 9.0,
+        'features': ['expiry_alerts', 'email_notifications', 'mobile_app_access'],
+        'price': 9.00,
     },
     'STANDARD': {
-        'max_products': -1,  # Unlimited
+        'inherits': 'BASIC',
+        'max_products': -1,
         'max_supermarkets': 5,
-        'features': ['barcode_scanner_support', 'orders_management', 'supplier_management', 'basic_analytics', 'standard_support'],
-        'price': 29.0,
+        'features': [
+            'store_management',
+            'advanced_inventory',
+            'unlimited_products',
+            'barcode_scanner_support',
+            'orders_management',
+            'supplier_management',
+            'stock_level_alerts',
+            'detailed_reports',
+            'basic_analytics',
+            'standard_support',
+        ],
+        'price': 29.00,
     },
     'PREMIUM': {
-        'max_products': -1,  # Unlimited
-        'max_supermarkets': -1,  # Unlimited
-        'features': ['advanced_inventory', 'multi_channel_sync', 'pos_integration', 'advanced_analytics', 'api_access', 'priority_support'],
-        'price': 79.0,
+        'inherits': 'STANDARD',
+        'max_products': -1,
+        'max_supermarkets': -1,
+        'features': [
+            'multi_channel_sync',
+            'pos_integration',
+            'advanced_analytics',
+            'clearance_tools',
+            'api_access',
+            'priority_support',
+        ],
+        'price': 79.00,
     }
 }

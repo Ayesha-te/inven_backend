@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db import models
 from django.db.models import Q, Sum, Avg, Count
 from django.utils import timezone
 from django.http import HttpResponse
@@ -24,6 +25,7 @@ from .serializers import (
 from .filters import ProductFilter
 from .services import BarcodeService, TicketService, ProductService
 from accounts.plan_limits import get_max_products, normalize_subscription_plan
+from accounts.permissions import HasSubscriptionFeature, get_all_features
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
@@ -64,7 +66,8 @@ class SupplierListCreateView(generics.ListCreateAPIView):
     """List and create suppliers"""
     
     serializer_class = SupplierSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'supplier_management'
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'contact_person', 'email']
     ordering_fields = ['name', 'created_at']
@@ -140,7 +143,6 @@ class ProductListCreateView(generics.ListCreateAPIView):
                 raise ValidationError({
                     'detail': f"Your {plan.title()} plan allows up to {max_products} products. Upgrade to add more."
                 })
-
         serializer.save(created_by=user)
 
 
@@ -324,7 +326,8 @@ class BulkProductUpdateView(APIView):
 class ProductStatsView(APIView):
     """Get product statistics"""
     
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'detailed_reports'
     
     def get(self, request):
         user = request.user
@@ -394,7 +397,8 @@ class StockMovementListView(generics.ListAPIView):
     """List stock movements"""
     
     serializer_class = StockMovementSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'advanced_inventory' # Example feature name
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['movement_type', 'product']
     ordering_fields = ['created_at']
@@ -402,13 +406,17 @@ class StockMovementListView(generics.ListAPIView):
     
     def get_queryset(self):
         user = self.request.user
+        return StockMovement.objects.filter(
+            product__supermarket__owner=user
+        ).select_related('product', 'created_by')
 
 
 class ClearanceListCreateView(generics.ListCreateAPIView):
     """List and create clearance deals (scoped to current user's supermarkets)."""
 
     serializer_class = ClearanceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'clearance_tools'
     filter_backends = [filters.OrderingFilter]
     ordering = ['-created_at']
     pagination_class = None  # match frontend expectations (plain array)
@@ -423,7 +431,8 @@ class ClearanceListCreateView(generics.ListCreateAPIView):
 
 class ClearanceDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ClearanceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'clearance_tools'
 
     def get_queryset(self):
         user = self.request.user
@@ -432,7 +441,8 @@ class ClearanceDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ClearanceActiveListView(generics.ListAPIView):
     serializer_class = ClearanceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'clearance_tools'
     pagination_class = None
 
     def get_queryset(self):
@@ -443,7 +453,8 @@ class ClearanceActiveListView(generics.ListAPIView):
 
 class ClearanceBarcodeView(APIView):
     """Return a barcode image for the clearance-generated barcode."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'clearance_tools'
 
     def get(self, request, clearance_id):
         try:
@@ -491,7 +502,8 @@ class ClearanceBarcodeView(APIView):
 
 class ClearanceTicketView(APIView):
     """Return a PDF ticket that includes clearance info and barcode."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'clearance_tools'
 
     def get(self, request, clearance_id):
         try:
@@ -627,9 +639,12 @@ class ProductReviewListCreateView(generics.ListCreateAPIView):
 
 
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated, HasSubscriptionFeature])
 def search_products_by_barcode(request, barcode):
     """Search products by barcode"""
+    if 'barcode_scanner_support' not in get_all_features(request.user.subscription_plan):
+        return Response({'detail': 'This feature is not available on your plan.'}, status=status.HTTP_403_FORBIDDEN)
+
     try:
         product = Product.objects.get(
             barcode=barcode,
@@ -648,7 +663,8 @@ def search_products_by_barcode(request, barcode):
 class BarcodeGenerationView(APIView):
     """Generate barcode for a product"""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'barcode_scanner_support'
 
     def get(self, request, product_id):
         """Get barcode image for a product"""
@@ -757,7 +773,8 @@ class BarcodeGenerationView(APIView):
 class ProductTicketView(APIView):
     """Generate product ticket/label"""
     
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'barcode_scanner_support'
     
     def get(self, request, product_id):
         """Generate single product ticket as PDF"""
@@ -873,7 +890,8 @@ class BulkTicketsView(APIView):
 class BulkBarcodesView(APIView):
     """Generate bulk barcodes sheet"""
     
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, HasSubscriptionFeature]
+    required_feature = 'barcode_scanner_support'
     
     def post(self, request):
         """Generate barcode sheet for multiple products"""
@@ -936,9 +954,12 @@ class BulkBarcodesView(APIView):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([permissions.IsAuthenticated, HasSubscriptionFeature])
 def generate_barcode_for_product(request, product_id):
     """Generate a new barcode for an existing product"""
+    if 'barcode_scanner_support' not in get_all_features(request.user.subscription_plan):
+        return Response({'detail': 'This feature is not available on your plan.'}, status=status.HTTP_403_FORBIDDEN)
+
     try:
         from django.core.exceptions import ValidationError
         from django.db.models import Q

@@ -17,6 +17,8 @@ class Notification(models.Model):
         ('SYSTEM', 'System Notification'),
         ('WELCOME', 'Welcome Message'),
         ('SUBSCRIPTION', 'Subscription Update'),
+        ('ORDER_DELIVERED', 'Order Delivered'),
+        ('ORDER_LATE', 'Order Late'),
     ]
     
     PRIORITY_LEVELS = [
