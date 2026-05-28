@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from .models import User, UserProfile, UserSession
 from .plan_limits import normalize_subscription_plan
 
@@ -269,6 +270,7 @@ class AdminManagedUserSerializer(serializers.ModelSerializer):
     total_sub_stores = serializers.SerializerMethodField()
     total_staff_members = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
+    subscription_days_remaining = serializers.ReadOnlyField(source='get_subscription_days_remaining')
     subscription_status_text = serializers.SerializerMethodField()
     approved_by_name = serializers.SerializerMethodField()
 
