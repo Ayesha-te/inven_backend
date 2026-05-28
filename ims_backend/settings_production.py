@@ -6,6 +6,7 @@ from .settings import *
 import os
 from decouple import config
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Override settings for production
 DEBUG = config('DEBUG', default=False, cast=bool)
@@ -16,11 +17,32 @@ if not ALLOWED_HOSTS or ALLOWED_HOSTS == ['']:
     ALLOWED_HOSTS = ['*']  # Fallback, but should be configured properly
 
 # Database configuration for production
+ALLOW_SQLITE_IN_PRODUCTION = config('ALLOW_SQLITE_IN_PRODUCTION', default=False, cast=bool)
+DATABASE_URL = config('DATABASE_URL', default='')
+
+if DATABASE_URL:
+    database_url = DATABASE_URL
+elif ALLOW_SQLITE_IN_PRODUCTION:
+    database_url = f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
+else:
+    raise ImproperlyConfigured(
+        'DATABASE_URL must be set in production. Attach a PostgreSQL database in Heroku '
+        'or explicitly set ALLOW_SQLITE_IN_PRODUCTION=True for a non-persistent setup.'
+    )
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=config('DATABASE_URL', default='sqlite:///db.sqlite3')
+    'default': dj_database_url.parse(
+        database_url,
+        conn_max_age=600,
+        conn_health_checks=True,
     )
 }
+
+if not DEBUG and not ALLOW_SQLITE_IN_PRODUCTION and DATABASES['default']['ENGINE'].endswith('sqlite3'):
+    raise ImproperlyConfigured(
+        'SQLite is not supported for this production deployment. Set DATABASE_URL to a '
+        'PostgreSQL connection string or opt in with ALLOW_SQLITE_IN_PRODUCTION=True.'
+    )
 
 # Static files configuration
 STATIC_URL = '/static/'
