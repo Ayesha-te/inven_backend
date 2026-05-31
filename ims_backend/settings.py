@@ -300,7 +300,7 @@ SUBSCRIPTION_PLANS = {
         ],
         'price': 9.00,
     },
-    'STANDARD': {
+    'STARTER': {
         'inherits': 'BASIC',
         'max_products': 1000,
         'max_supermarkets': 3,
@@ -315,8 +315,8 @@ SUBSCRIPTION_PLANS = {
         ],
         'price': 19.00,
     },
-    'PREMIUM': {
-        'inherits': 'STANDARD',
+    'PRO': {
+        'inherits': 'STARTER',
         'max_products': -1,
         'max_supermarkets': -1,
         'features': [

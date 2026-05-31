@@ -7,8 +7,8 @@ from .plan_limits import get_plan_label, normalize_subscription_plan
 
 PLAN_LEVELS = {
     'BASIC': 0,
-    'STANDARD': 1,
-    'PREMIUM': 2,
+    'STARTER': 1,
+    'PRO': 2,
 }
 
 

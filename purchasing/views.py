@@ -13,7 +13,7 @@ class SupplierProductViewSet(viewsets.ModelViewSet):
     queryset = SupplierProduct.objects.select_related('supplier', 'product').all()
     serializer_class = SupplierProductSerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'STANDARD'
+    required_plan = 'STARTER'
     filterset_fields = ['supplier', 'product', 'is_active']
     search_fields = ['supplier__name', 'product__name']
     ordering_fields = ['supplier_price', 'available_quantity']
@@ -23,7 +23,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
     queryset = PurchaseOrder.objects.select_related('supplier', 'supermarket', 'created_by').prefetch_related('items').all()
     serializer_class = PurchaseOrderSerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'STANDARD'
+    required_plan = 'STARTER'
     filterset_fields = ['supplier', 'supermarket', 'status']
     search_fields = ['supplier__name', 'notes', 'po_number']
     ordering_fields = ['created_at', 'updated_at', 'expected_delivery_date']
@@ -151,7 +151,7 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 from rest_framework.views import APIView
 class BestSupplierView(APIView):
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'STANDARD'
+    required_plan = 'STARTER'
 
     def get(self, request):
         product_id = request.query_params.get('product')

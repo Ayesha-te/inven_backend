@@ -36,7 +36,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         valid_plans = {choice[0] for choice in User.SUBSCRIPTION_CHOICES}
         if normalized_plan not in valid_plans:
             raise serializers.ValidationError({
-                'subscription_plan': f"Invalid plan '{submitted_plan}'. Choose BASIC, STANDARD, or PREMIUM."
+                'subscription_plan': f"Invalid plan '{submitted_plan}'. Choose BASIC, STARTER, or PRO."
             })
         attrs['subscription_plan'] = normalized_plan
         return attrs

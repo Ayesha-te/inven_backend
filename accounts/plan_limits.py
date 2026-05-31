@@ -3,15 +3,15 @@ from typing import Optional
 
 PLAN_ALIASES = {
     "FREE": "BASIC",
-    "STARTER": "BASIC",
-    "OTHER": "PREMIUM",
-    "PRO": "PREMIUM",
+    "STANDARD": "STARTER",
+    "PREMIUM": "PRO",
+    "OTHER": "PRO",
 }
 
 PLAN_LABELS = {
     "BASIC": "Basic",
-    "STANDARD": "Starter",
-    "PREMIUM": "Pro",
+    "STARTER": "Starter",
+    "PRO": "Pro",
 }
 
 
@@ -20,11 +20,11 @@ PLAN_LIMITS = {
         "max_stores": 1,
         "max_products": 100,
     },
-    "STANDARD": {
+    "STARTER": {
         "max_stores": 3,
         "max_products": 1000,
     },
-    "PREMIUM": {
+    "PRO": {
         "max_stores": None,
         "max_products": None,
     },

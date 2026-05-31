@@ -43,10 +43,9 @@ class User(AbstractUser):
     ]
     
     SUBSCRIPTION_CHOICES = [
-        ('STARTER', 'Starter'),
         ('BASIC', 'Basic'),
-        ('STANDARD', 'Standard'),
-        ('PREMIUM', 'Premium'),
+        ('STARTER', 'Starter'),
+        ('PRO', 'Pro'),
     ]
     
     # Override username to make it optional and non-unique
@@ -70,7 +69,7 @@ class User(AbstractUser):
     subscription_plan = models.CharField(
         max_length=10, 
         choices=SUBSCRIPTION_CHOICES, 
-        default='STARTER'
+        default='BASIC'
     )
     subscription_start_date = models.DateTimeField(blank=True, null=True)
     subscription_end_date = models.DateTimeField(blank=True, null=True)

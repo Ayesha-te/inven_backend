@@ -12,7 +12,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
     queryset = Order.objects.all().select_related('supermarket', 'assigned_warehouse').prefetch_related('items')
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'STANDARD'
+    required_plan = 'STARTER'
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status', 'supermarket', 'channel', 'courier', 'payment_status']
     search_fields = ['customer_name', 'customer_email', 'customer_phone', 'external_order_id']
@@ -36,7 +36,7 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Order.objects.all().select_related('supermarket', 'assigned_warehouse').prefetch_related('items')
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'STANDARD'
+    required_plan = 'STARTER'
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -46,7 +46,7 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
 class WarehouseListCreateView(generics.ListCreateAPIView):
     serializer_class = WarehouseSerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'PREMIUM'
+    required_plan = 'PRO'
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['supermarket']
 
@@ -57,7 +57,7 @@ class WarehouseListCreateView(generics.ListCreateAPIView):
 class WarehouseDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = WarehouseSerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'PREMIUM'
+    required_plan = 'PRO'
 
     def get_queryset(self):
         return Warehouse.objects.filter(supermarket__owner=self.request.user)
@@ -66,7 +66,7 @@ class WarehouseDetailView(generics.RetrieveUpdateDestroyAPIView):
 class RMAListCreateView(generics.ListCreateAPIView):
     serializer_class = RMASerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'PREMIUM'
+    required_plan = 'PRO'
 
     def get_queryset(self):
         return RMA.objects.filter(order__supermarket__owner=self.request.user)
@@ -75,7 +75,7 @@ class RMAListCreateView(generics.ListCreateAPIView):
 class RMADetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RMASerializer
     permission_classes = [permissions.IsAuthenticated, PlanPermission]
-    required_plan = 'PREMIUM'
+    required_plan = 'PRO'
 
     def get_queryset(self):
         return RMA.objects.filter(order__supermarket__owner=self.request.user)
