@@ -24,7 +24,7 @@ from .serializers import (
 )
 from .filters import ProductFilter
 from .services import BarcodeService, TicketService, ProductService
-from accounts.plan_limits import get_max_products, normalize_subscription_plan
+from accounts.plan_limits import get_max_products, get_plan_label, normalize_subscription_plan
 from accounts.permissions import HasSubscriptionFeature, get_all_features
 
 
@@ -141,7 +141,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
             ).count()
             if owner_products_count >= max_products:
                 raise ValidationError({
-                    'detail': f"Your {plan.title()} plan allows up to {max_products} products. Upgrade to add more."
+                    'detail': f"Your {get_plan_label(plan)} plan allows up to {max_products} products. Upgrade to add more."
                 })
         serializer.save(created_by=user)
 

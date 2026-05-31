@@ -14,7 +14,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
-    subscription_plan = serializers.CharField(required=False, default='STARTER')
+    subscription_plan = serializers.CharField(required=False, default='BASIC')
     supermarket_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
     supermarket_address = serializers.CharField(required=False, allow_blank=True, write_only=True)
     supermarket_phone = serializers.CharField(required=False, allow_blank=True, write_only=True)
@@ -31,12 +31,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError("Passwords don't match")
 
-        submitted_plan = str(attrs.get('subscription_plan', 'STARTER')).upper()
+        submitted_plan = str(attrs.get('subscription_plan', 'BASIC')).upper()
         normalized_plan = normalize_subscription_plan(submitted_plan)
         valid_plans = {choice[0] for choice in User.SUBSCRIPTION_CHOICES}
         if normalized_plan not in valid_plans:
             raise serializers.ValidationError({
-                'subscription_plan': f"Invalid plan '{submitted_plan}'. Choose STARTER, BASIC, STANDARD, or PREMIUM."
+                'subscription_plan': f"Invalid plan '{submitted_plan}'. Choose BASIC, STANDARD, or PREMIUM."
             })
         attrs['subscription_plan'] = normalized_plan
         return attrs

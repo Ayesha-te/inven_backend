@@ -2,20 +2,19 @@ from typing import Set
 
 from rest_framework import permissions
 
-from .plan_limits import normalize_subscription_plan
+from .plan_limits import get_plan_label, normalize_subscription_plan
 
 
 PLAN_LEVELS = {
-    'STARTER': 0,
-    'BASIC': 1,
-    'STANDARD': 2,
-    'PREMIUM': 3,
+    'BASIC': 0,
+    'STANDARD': 1,
+    'PREMIUM': 2,
 }
 
 
 def get_plan_level(plan_name: str) -> int:
     normalized_plan = normalize_subscription_plan(plan_name)
-    return PLAN_LEVELS.get(normalized_plan, PLAN_LEVELS['STARTER'])
+    return PLAN_LEVELS.get(normalized_plan, PLAN_LEVELS['BASIC'])
 
 
 def get_all_features(plan_name: str) -> Set[str]:
@@ -24,7 +23,7 @@ def get_all_features(plan_name: str) -> Set[str]:
     normalized_plan = normalize_subscription_plan(plan_name)
     plan_config = settings.SUBSCRIPTION_PLANS.get(
         normalized_plan,
-        settings.SUBSCRIPTION_PLANS['STARTER'],
+        settings.SUBSCRIPTION_PLANS['BASIC'],
     )
 
     features = set(plan_config.get('features', []))
@@ -47,14 +46,14 @@ class PlanPermission(permissions.BasePermission):
         if request.user.is_superuser:
             return True
             
-        required_plan = normalize_subscription_plan(getattr(view, 'required_plan', 'STARTER'))
+        required_plan = normalize_subscription_plan(getattr(view, 'required_plan', 'BASIC'))
         user_plan = normalize_subscription_plan(request.user.subscription_plan)
         user_level = get_plan_level(user_plan)
         required_level = get_plan_level(required_plan)
 
         if user_level < required_level:
             self.message = (
-                f"Your '{user_plan}' plan does not meet the '{required_plan}' plan requirement. "
+                f"Your '{get_plan_label(user_plan)}' plan does not meet the '{get_plan_label(required_plan)}' plan requirement. "
                 "Please upgrade your subscription."
             )
 
@@ -89,5 +88,5 @@ class HasSubscriptionFeature(permissions.BasePermission):
         if required_feature in user_features:
             return True
             
-        self.message = f"Your '{user_plan}' plan does not include the '{required_feature}' feature. Please upgrade your plan."
+        self.message = f"Your '{get_plan_label(user_plan)}' plan does not include the '{required_feature}' feature. Please upgrade your plan."
         return False

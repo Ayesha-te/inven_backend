@@ -15,7 +15,7 @@ from .serializers import (
     SupermarketAnalyticsSerializer, SupermarketStatsSerializer,
     InvitationResponseSerializer
 )
-from accounts.plan_limits import get_max_stores, normalize_subscription_plan
+from accounts.plan_limits import get_max_stores, get_plan_label, normalize_subscription_plan
 
 
 class SupermarketListCreateView(generics.ListCreateAPIView):
@@ -43,7 +43,7 @@ class SupermarketListCreateView(generics.ListCreateAPIView):
 
         if max_stores is not None and current_stores >= max_stores:
             raise ValidationError({
-                'detail': f"Your {normalized_plan.title()} plan allows up to {max_stores} store(s). Upgrade to add more."
+                'detail': f"Your {get_plan_label(normalized_plan)} plan allows up to {max_stores} store(s). Upgrade to add more."
             })
 
         serializer.save(owner=user)

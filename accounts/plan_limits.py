@@ -2,24 +2,27 @@ from typing import Optional
 
 
 PLAN_ALIASES = {
-    "FREE": "STARTER",
+    "FREE": "BASIC",
+    "STARTER": "BASIC",
     "OTHER": "PREMIUM",
     "PRO": "PREMIUM",
 }
 
+PLAN_LABELS = {
+    "BASIC": "Basic",
+    "STANDARD": "Starter",
+    "PREMIUM": "Pro",
+}
+
 
 PLAN_LIMITS = {
-    "STARTER": {
-        "max_stores": 1,
-        "max_products": 50,
-    },
     "BASIC": {
         "max_stores": 1,
         "max_products": 100,
     },
     "STANDARD": {
-        "max_stores": 5,
-        "max_products": None,
+        "max_stores": 3,
+        "max_products": 1000,
     },
     "PREMIUM": {
         "max_stores": None,
@@ -29,13 +32,18 @@ PLAN_LIMITS = {
 
 
 def normalize_subscription_plan(plan: Optional[str]) -> str:
-    normalized = str(plan or "STARTER").upper()
+    normalized = str(plan or "BASIC").upper()
     return PLAN_ALIASES.get(normalized, normalized)
 
 
 def get_plan_limits(plan: Optional[str]) -> dict:
     normalized = normalize_subscription_plan(plan)
-    return PLAN_LIMITS.get(normalized, PLAN_LIMITS["STARTER"])
+    return PLAN_LIMITS.get(normalized, PLAN_LIMITS["BASIC"])
+
+
+def get_plan_label(plan: Optional[str]) -> str:
+    normalized = normalize_subscription_plan(plan)
+    return PLAN_LABELS.get(normalized, "Basic")
 
 
 def get_max_stores(plan: Optional[str]) -> Optional[int]:

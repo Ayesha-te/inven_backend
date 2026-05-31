@@ -91,15 +91,16 @@ class SupermarketCreateUpdateSerializer(serializers.ModelSerializer):
         Validate against subscription plan features.
         """
         from django.conf import settings
+        from accounts.plan_limits import get_plan_label, normalize_subscription_plan
         user = self.context['request'].user
-        plan = user.subscription_plan
+        plan = normalize_subscription_plan(user.subscription_plan)
 
         # Check for POS integration feature
         if data.get('pos_system_enabled'):
             plan_config = settings.SUBSCRIPTION_PLANS.get(plan, settings.SUBSCRIPTION_PLANS['BASIC'])
             if 'pos_integration' not in plan_config.get('features', []):
                 raise serializers.ValidationError({
-                    'pos_system_enabled': f"Your {plan} plan does not include POS integration. Please upgrade to the PRO plan."
+                    'pos_system_enabled': f"Your {get_plan_label(plan)} plan does not include POS integration. Please upgrade to the Pro plan."
                 })
         
         return data
